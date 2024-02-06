@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 
+// *************USER SECTION ************
+//
+
+model User {
+  rec_id     Int      @id @default(autoincrement())
+  username   String   @unique
+  password   String
+  email      String   @unique
+  is_paid    Boolean  @default(false)
+  opt_in     Boolean  @default(false)
+  location   String?  @default("No Location yet.")
+  bio        String?  @default("No bio yet.") //@db.VarChar(1000)
+  hobbies    String?  @default("No hobbies yet.") //@db.VarChar(1000)
+  profilePic String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  genderId   Int
+  gender     Gender   @relation(fields: [genderId], references: [rec_id])
+  seekingId  Int
+  seeking    Seeking  @relation(fields: [seekingId], references: [rec_id])
+}
+
+model Gender {
+  rec_id Int    @id @default(autoincrement())
+  name   String @unique
+  users  User[]
+}
+
+model Seeking {
+  rec_id Int    @id @default(autoincrement())
+  name   String @unique
+  users  User[]
+}

@@ -27,16 +27,7 @@ router.get("/user/:id", async (req, res) => {
     });
 
     res.status(200).json({
-      username: user.username,
-      email: user.email,
-      is_paid: user.is_paid,
-      opt_in: user.opt_in,
-      location: user.location,
-      bio: user.bio,
-      hobbies: user.hobbies,
-      posts: user.posts,
-      comments: user.comments,
-      profilePic: user.profilePic,
+      user,
     });
   } catch (err) {
     console.log(err);
@@ -148,6 +139,14 @@ router.post("/signup", async (req, res, next) => {
     } else {
       res.status(500).send({ error: err });
     }
+  }
+});
+
+router.post("/logout", async (req, res) => {
+  try {
+    console.log("LOGGED OUT!!!!");
+  } catch (error) {
+    console.log(error);
   }
 });
 

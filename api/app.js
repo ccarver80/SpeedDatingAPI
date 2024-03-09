@@ -8,6 +8,7 @@ var logger = require("morgan");
 // ROUTES
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
+var roomsRouter = require("./routes/rooms");
 
 //CORS
 var app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/rooms", roomsRouter);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

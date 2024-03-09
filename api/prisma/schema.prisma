@@ -44,3 +44,12 @@ model Seeking {
   name   String @unique
   users  User[]
 }
+
+// ############ ROOM SECTION ##################
+
+model Room {
+  rec_id           Int    @id @default(autoincrement())
+  room_name        String
+  room_description String
+  room_zipcode     String
+}

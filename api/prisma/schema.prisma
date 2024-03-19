@@ -31,6 +31,9 @@ model User {
   gender     Gender   @relation(fields: [genderId], references: [rec_id])
   seekingId  Int
   seeking    Seeking  @relation(fields: [seekingId], references: [rec_id])
+  socketId   String?
+  Room       Room?    @relation(fields: [roomRec_id], references: [rec_id])
+  roomRec_id Int?
 }
 
 model Gender {
@@ -52,4 +55,8 @@ model Room {
   room_name        String
   room_description String
   room_zipcode     String
+  room_city        String
+  room_state       String
+  room_country     String
+  users            User[]
 }

@@ -4,10 +4,11 @@
  * Module dependencies.
  */
 
-
-var app = require("../app");
+var { app } = require("../app");
+const cors = require("cors");
 var debug = require("debug")("api:server");
 var http = require("http");
+let socketapi = require("../socketapi");
 
 /**
  * Get port from environment and store in Express.
@@ -20,7 +21,75 @@ app.set("port", port);
  * Create HTTP server.
  */
 
+app.use(cors());
 var server = http.createServer(app);
+
+/*
+ * SOCKET IO
+ *
+ */
+const { PrismaClient, Prisma } = require("@prisma/client");
+const prisma = new PrismaClient();
+var io = require("socket.io")(server, {
+  cors: {
+    origin: ["http://localhost:3000"],
+  },
+});
+
+io.on("connection", (socket) => {
+  socket.on("join-room", async (room, user) => {
+    socket.join(room);
+    io.to(room).emit("new-user", user);
+
+    try {
+      const addUser = await prisma.room.update({
+        where: {
+          rec_id: parseInt(room),
+        },
+        include: {
+          users: true,
+        },
+        data: {
+          users: {
+            connect: {
+              rec_id: parseInt(user),
+            },
+          },
+        },
+      });
+      console.log(addUser);
+    } catch (err) {
+      console.log(err);
+    }
+
+    console.log("USER ADDED");
+  });
+
+  socket.on("send-message", (message, room, user) => {
+    io.to(room).emit("receive-message", { message: message, user: socket.id });
+  });
+  socket.on("disconnect", async (room, user) => {
+    console.log("USER DISCONNECTED!");
+    console.log(room);
+    console.log(user);
+    const deleteUser = await prisma.room.update({
+      where: {
+        rec_id: parseInt(room),
+      },
+      include: {
+        users: true,
+      },
+      data: {
+        users: {
+          disconnect: {
+            rec_id: parseInt(user),
+          },
+        },
+      },
+    });
+    console.log(deleteUser);
+  });
+});
 
 /**
  * Listen on provided port, on all network interfaces.

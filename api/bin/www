@@ -37,59 +37,126 @@ var io = require("socket.io")(server, {
 });
 
 io.on("connection", (socket) => {
+  // Join Room
   socket.on("join-room", async (room, user) => {
-    socket.join(room);
-    io.to(room).emit("new-user", user);
+    const roomInfo = await prisma.room.findFirst({
+      where: {
+        rec_id: parseInt(room),
+      },
+      include: {
+        users: true,
+      },
+    });
 
-    try {
-      const updateUser = await prisma.user.update({
+    const userInfo = await prisma.user.findFirst({
+      where: {
+        rec_id: parseInt(user),
+      },
+    });
+
+    const spots = roomInfo.spots_availble;
+    const userList = roomInfo.users;
+    if (userList.length < spots) {
+      try {
+        socket.join(room);
+        io.to(room).emit("new-user", user);
+
+        // Add socket ID to user
+        const updateUser = await prisma.user.update({
+          where: {
+            rec_id: parseInt(user),
+          },
+          data: {
+            socketId: socket.id,
+          },
+        });
+
+        // Update Room
+        const roomUpdate = await prisma.room.update({
+          where: {
+            rec_id: parseInt(room),
+          },
+          include: {
+            users: true,
+          },
+          data: {
+            users: {
+              connect: {
+                rec_id: parseInt(user),
+              },
+            },
+            spots_availble: spots - 1,
+          },
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  });
+
+  // Message Sent
+  socket.on("send-message", (message, room, user) => {
+    io.to(room).emit("receive-message", { message: message, user: socket.id });
+  });
+
+  // Disconnect
+  socket.on("disconnect", async () => {
+    console.log("USER DISCONNECTED!");
+    console.log(socket.id);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        socketId: socket.id,
+      },
+    });
+
+    if (user != null) {
+      const roomInfo = await prisma.room.findFirst({
         where: {
-          rec_id: parseInt(user),
-        },
-        data: {
-          socketId: socket.id,
+          rec_id: parseInt(user.roomRec_id),
         },
       });
-      const addUser = await prisma.room.update({
+
+      const roomUpdate = await prisma.room.update({
         where: {
-          rec_id: parseInt(room),
+          rec_id: parseInt(user.roomRec_id),
+        },
+        data: {
+          spots_availble: roomInfo.spots_availble + 1,
+        },
+        data: {
+          users: {
+            disconnect: {
+              rec_id: parseInt(user.rec_id),
+            },
+          },
         },
         include: {
           users: true,
         },
+      });
+
+      const deleteUser = await prisma.user.update({
+        where: {
+          socketId: socket.id,
+        },
+
         data: {
-          users: {
-            connect: {
-              rec_id: parseInt(user),
-            },
-          },
+          roomRec_id: null,
+          socketId: null,
         },
       });
-      console.log(addUser);
-    } catch (err) {
-      console.log(err);
+      console.log(deleteUser);
+      // Deletes Room if no one left in room
+      if (roomUpdate.users.length < 1) {
+        console.log("Room Deleted");
+        const roomDelete = await prisma.room.delete({
+          where: {
+            rec_id: roomUpdate.rec_id,
+          },
+        });
+      }
     }
-
-    console.log("USER ADDED");
-  });
-
-  socket.on("send-message", (message, room, user) => {
-    io.to(room).emit("receive-message", { message: message, user: socket.id });
-  });
-  socket.on("disconnect", async () => {
-    console.log("USER DISCONNECTED!");
-    console.log(socket.id);
-    const deleteUser = await prisma.user.update({
-      where: {
-        socketId: socket.id,
-      },
-
-      data: {
-        roomRec_id: null,
-        socketId: null,
-      },
-    });
-    console.log(deleteUser);
   });
 });
 

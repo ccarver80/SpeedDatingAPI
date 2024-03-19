@@ -59,4 +59,7 @@ model Room {
   room_state       String
   room_country     String
   users            User[]
+  spots_availble   Int    @default(10)
+  male_users       Int    @default(0)
+  female_users     Int    @default(0)
 }

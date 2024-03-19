@@ -2,7 +2,9 @@
   "name": "api",
   "version": "0.0.0",
   "private": true,
-  "prisma": {},
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "start": "nodemon ./bin/www"
   },

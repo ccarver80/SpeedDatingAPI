@@ -47,7 +47,6 @@ router.get("/genders", async (req, res) => {
 
 router.get("/seeking", async (req, res) => {
   try {
-    console.log("YUP");
     const seeking = await prisma.seeking.findMany();
     seeking.map((seek) => (seek.value = seek.rec_id));
 

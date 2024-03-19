@@ -31,7 +31,7 @@ model User {
   gender     Gender   @relation(fields: [genderId], references: [rec_id])
   seekingId  Int
   seeking    Seeking  @relation(fields: [seekingId], references: [rec_id])
-  socketId   String?
+  socketId   String?  @unique
   Room       Room?    @relation(fields: [roomRec_id], references: [rec_id])
   roomRec_id Int?
 }

@@ -24,6 +24,9 @@ router.get("/getRoom/:id", async (req, res) => {
       where: {
         rec_id: parseInt(req.params.id),
       },
+      include: {
+        users: true,
+      },
     });
 
     res.status(200).json(room);

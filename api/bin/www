@@ -42,6 +42,14 @@ io.on("connection", (socket) => {
     io.to(room).emit("new-user", user);
 
     try {
+      const updateUser = await prisma.user.update({
+        where: {
+          rec_id: parseInt(user),
+        },
+        data: {
+          socketId: socket.id,
+        },
+      });
       const addUser = await prisma.room.update({
         where: {
           rec_id: parseInt(room),
@@ -68,23 +76,17 @@ io.on("connection", (socket) => {
   socket.on("send-message", (message, room, user) => {
     io.to(room).emit("receive-message", { message: message, user: socket.id });
   });
-  socket.on("disconnect", async (room, user) => {
+  socket.on("disconnect", async () => {
     console.log("USER DISCONNECTED!");
-    console.log(room);
-    console.log(user);
-    const deleteUser = await prisma.room.update({
+    console.log(socket.id);
+    const deleteUser = await prisma.user.update({
       where: {
-        rec_id: parseInt(room),
+        socketId: socket.id,
       },
-      include: {
-        users: true,
-      },
+
       data: {
-        users: {
-          disconnect: {
-            rec_id: parseInt(user),
-          },
-        },
+        roomRec_id: null,
+        socketId: null,
       },
     });
     console.log(deleteUser);

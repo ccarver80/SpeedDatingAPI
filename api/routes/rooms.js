@@ -39,9 +39,32 @@ router.post("/searchRooms", async (req, res) => {
   try {
     var rad = zipcodes.radius(req.body.zipcode, req.body.miles);
 
+    const user = await prisma.user.findFirst({
+      where: {
+        rec_id: parseInt(req.body.userId),
+      },
+      include: {
+        gender: true,
+        seeking: true,
+      },
+    });
+
     const rooms = await prisma.room.findMany({
+      include: {
+        users: true,
+      },
       where: {
         room_zipcode: { in: rad },
+        users: {
+          every: {
+            gender: {
+              name: user.seeking.name,
+            },
+            seeking: {
+              name: user.gender.name,
+            },
+          },
+        },
       },
     });
 

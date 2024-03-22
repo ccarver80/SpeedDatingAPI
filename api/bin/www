@@ -218,6 +218,10 @@ io.on("connection", (socket) => {
           socketId: null,
         },
       });
+      io.to(roomUpdate.rec_id).emit("receive-message", {
+        message: "<------- This User Has Left The Chat",
+        user: socket.id,
+      });
 
       // Deletes Room if no one left in room
       if (roomUpdate.users.length < 1) {
@@ -229,11 +233,6 @@ io.on("connection", (socket) => {
         });
       }
     }
-
-    io.to(roomUpdate.rec_id).emit("receive-message", {
-      message: "<------- This User Has Left The Chat",
-      user: socket.id,
-    });
   });
 });
 

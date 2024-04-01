@@ -167,6 +167,7 @@ io.on("connection", (socket) => {
         });
       }
       io.to(roomId).emit("receive-message", {
+        resetTimer: true,
         message: "<------- This User Has Left The Chat",
         user: socket.id,
       });
@@ -177,61 +178,66 @@ io.on("connection", (socket) => {
 
   //################ Disconnect ####################
   socket.on("disconnect", async () => {
-    const user = await prisma.user.findFirst({
-      where: {
-        socketId: socket.id,
-      },
-    });
-
-    if (user != null) {
-      const roomInfo = await prisma.room.findFirst({
-        where: {
-          rec_id: parseInt(user.roomRec_id),
-        },
-      });
-
-      const roomUpdate = await prisma.room.update({
-        where: {
-          rec_id: parseInt(user.roomRec_id),
-        },
-
-        data: {
-          spots_availble: roomInfo.spots_availble + 1,
-          users: {
-            disconnect: {
-              rec_id: parseInt(user.rec_id),
-            },
-          },
-        },
-        include: {
-          users: true,
-        },
-      });
-
-      const deleteUser = await prisma.user.update({
+    try {
+      const user = await prisma.user.findFirst({
         where: {
           socketId: socket.id,
         },
-
-        data: {
-          roomRec_id: null,
-          socketId: null,
-        },
-      });
-      io.to(roomUpdate.rec_id).emit("receive-message", {
-        message: "<------- This User Has Left The Chat",
-        user: socket.id,
       });
 
-      // Deletes Room if no one left in room
-      if (roomUpdate.users.length < 1) {
-        console.log(`Room ${roomUpdate.room_name} Deleted!`);
-        const roomDelete = await prisma.room.delete({
+      if (user != null) {
+        const roomInfo = await prisma.room.findFirst({
           where: {
-            rec_id: roomUpdate.rec_id,
+            rec_id: parseInt(user.roomRec_id),
           },
         });
+
+        const roomUpdate = await prisma.room.update({
+          where: {
+            rec_id: parseInt(user.roomRec_id),
+          },
+
+          data: {
+            spots_availble: roomInfo.spots_availble + 1,
+            users: {
+              disconnect: {
+                rec_id: parseInt(user.rec_id),
+              },
+            },
+          },
+          include: {
+            users: true,
+          },
+        });
+
+        const deleteUser = await prisma.user.update({
+          where: {
+            socketId: socket.id,
+          },
+
+          data: {
+            roomRec_id: null,
+            socketId: null,
+          },
+        });
+        io.to(roomUpdate.rec_id).emit("receive-message", {
+          resetTimer: true,
+          message: "<------- This User Has Left The Chat",
+          user: socket.id,
+        });
+
+        // Deletes Room if no one left in room
+        if (roomUpdate.users.length < 1) {
+          console.log(`Room ${roomUpdate.room_name} Deleted!`);
+          const roomDelete = await prisma.room.delete({
+            where: {
+              rec_id: roomUpdate.rec_id,
+            },
+          });
+        }
       }
+    } catch (error) {
+      console.log(error);
     }
   });
 });

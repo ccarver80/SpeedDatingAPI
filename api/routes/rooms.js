@@ -6,18 +6,6 @@ const { verifyToken } = require("../middleware/verify");
 
 const prisma = new PrismaClient();
 
-// const app = express();
-
-// router.get("/connect/:id", async (req, res) => {
-//   try {
-//     io.on("connection", (socket) => {
-//       console.log("USER CONNECTED!");
-//     });
-//   } catch (err) {
-//     console.log(err);
-//   }
-// });
-
 router.get("/getRoom/:id", async (req, res) => {
   try {
     const room = await prisma.room.findFirst({
@@ -38,7 +26,7 @@ router.get("/getRoom/:id", async (req, res) => {
 router.post("/searchRooms", async (req, res) => {
   try {
     var rad = zipcodes.radius(req.body.zipcode, req.body.miles);
-
+    console.log(req.body);
     const user = await prisma.user.findFirst({
       where: {
         rec_id: parseInt(req.body.userId),
@@ -68,13 +56,7 @@ router.post("/searchRooms", async (req, res) => {
       },
     });
 
-    if (rooms.length > 0) {
-      res.status(200).json(rooms);
-    } else {
-      res.status(200).json({
-        message: "No Rooms Found Matching Your Search Parameters",
-      });
-    }
+    res.status(200).json(rooms);
   } catch (err) {
     console.log(err);
   }

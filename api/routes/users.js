@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+var zipcodes = require("zipcodes");
 const auth = require("basic-auth");
 const { PrismaClient, Prisma } = require("@prisma/client");
 const { verifyToken } = require("../middleware/verify");
@@ -98,34 +99,49 @@ router.post("/login", async (req, res, next) => {
 
 router.post("/signup", async (req, res, next) => {
   try {
-    if (req.body.opt_in === "true") {
-      req.body.opt_in = true;
+    const zipcode = req.body.zipcode;
+    const valid = zipcodes.lookup(zipcode);
+
+    if (valid != undefined) {
+      if (req.body.opt_in === "true") {
+        req.body.opt_in = true;
+      } else {
+        req.body.opt_in = false;
+      }
+      const user = await prisma.user.create({
+        data: {
+          username: req.body.username,
+          password: req.body.password,
+          gender: {
+            connect: {
+              rec_id: parseInt(req.body.gender),
+            },
+          },
+          seeking: {
+            connect: {
+              rec_id: parseInt(req.body.seeking),
+            },
+          },
+          zipcode: parseInt(zipcode),
+          email: req.body.email,
+          opt_in: req.body.opt_in,
+        },
+      });
+      jwt.sign(
+        { user: user },
+        "secretkey",
+        { expiresIn: "4h" },
+        (err, token) => {
+          res
+            .status(201)
+            .json({ token, user_id: user.rec_id, user_name: user.username });
+        }
+      );
     } else {
-      req.body.opt_in = false;
+      res.status(200).json({
+        zipcode: `Zipcode ${zipcode} Dose Not Exist, Please Try Again`,
+      });
     }
-    const user = await prisma.user.create({
-      data: {
-        username: req.body.username,
-        password: req.body.password,
-        gender: {
-          connect: {
-            rec_id: parseInt(req.body.gender),
-          },
-        },
-        seeking: {
-          connect: {
-            rec_id: parseInt(req.body.seeking),
-          },
-        },
-        email: req.body.email,
-        opt_in: req.body.opt_in,
-      },
-    });
-    jwt.sign({ user: user }, "secretkey", { expiresIn: "4h" }, (err, token) => {
-      res
-        .status(201)
-        .json({ token, user_id: user.rec_id, user_name: user.username });
-    });
   } catch (err) {
     console.log(err);
     if (err instanceof Prisma.PrismaClientKnownRequestError) {

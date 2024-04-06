@@ -27,10 +27,14 @@ model User {
   profilePic String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  zipcode    Int
   genderId   Int
   gender     Gender   @relation(fields: [genderId], references: [rec_id])
   seekingId  Int
   seeking    Seeking  @relation(fields: [seekingId], references: [rec_id])
+  socketId   String?  @unique
+  Room       Room?    @relation(fields: [roomRec_id], references: [rec_id])
+  roomRec_id Int?
 }
 
 model Gender {
@@ -43,4 +47,19 @@ model Seeking {
   rec_id Int    @id @default(autoincrement())
   name   String @unique
   users  User[]
+}
+
+// ############ ROOM SECTION ##################
+
+model Room {
+  rec_id           Int      @id @default(autoincrement())
+  room_name        String
+  room_description String
+  room_zipcode     String
+  room_city        String
+  room_state       String
+  room_country     String
+  updatedAt        DateTime @updatedAt
+  users            User[]
+  spots_availble   Int      @default(2)
 }

@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+var zipcodes = require("zipcodes");
 const auth = require("basic-auth");
 const { PrismaClient, Prisma } = require("@prisma/client");
 const { verifyToken } = require("../middleware/verify");
@@ -27,16 +28,7 @@ router.get("/user/:id", async (req, res) => {
     });
 
     res.status(200).json({
-      username: user.username,
-      email: user.email,
-      is_paid: user.is_paid,
-      opt_in: user.opt_in,
-      location: user.location,
-      bio: user.bio,
-      hobbies: user.hobbies,
-      posts: user.posts,
-      comments: user.comments,
-      profilePic: user.profilePic,
+      user,
     });
   } catch (err) {
     console.log(err);
@@ -56,7 +48,6 @@ router.get("/genders", async (req, res) => {
 
 router.get("/seeking", async (req, res) => {
   try {
-    console.log("YUP");
     const seeking = await prisma.seeking.findMany();
     seeking.map((seek) => (seek.value = seek.rec_id));
 
@@ -108,34 +99,49 @@ router.post("/login", async (req, res, next) => {
 
 router.post("/signup", async (req, res, next) => {
   try {
-    if (req.body.opt_in === "true") {
-      req.body.opt_in = true;
+    const zipcode = req.body.zipcode;
+    const valid = zipcodes.lookup(zipcode);
+
+    if (valid != undefined) {
+      if (req.body.opt_in === "true") {
+        req.body.opt_in = true;
+      } else {
+        req.body.opt_in = false;
+      }
+      const user = await prisma.user.create({
+        data: {
+          username: req.body.username,
+          password: req.body.password,
+          gender: {
+            connect: {
+              rec_id: parseInt(req.body.gender),
+            },
+          },
+          seeking: {
+            connect: {
+              rec_id: parseInt(req.body.seeking),
+            },
+          },
+          zipcode: parseInt(zipcode),
+          email: req.body.email,
+          opt_in: req.body.opt_in,
+        },
+      });
+      jwt.sign(
+        { user: user },
+        "secretkey",
+        { expiresIn: "4h" },
+        (err, token) => {
+          res
+            .status(201)
+            .json({ token, user_id: user.rec_id, user_name: user.username });
+        }
+      );
     } else {
-      req.body.opt_in = false;
+      res.status(200).json({
+        zipcode: `Zipcode ${zipcode} Dose Not Exist, Please Try Again`,
+      });
     }
-    const user = await prisma.user.create({
-      data: {
-        username: req.body.username,
-        password: req.body.password,
-        gender: {
-          connect: {
-            rec_id: parseInt(req.body.gender),
-          },
-        },
-        seeking: {
-          connect: {
-            rec_id: parseInt(req.body.seeking),
-          },
-        },
-        email: req.body.email,
-        opt_in: req.body.opt_in,
-      },
-    });
-    jwt.sign({ user: user }, "secretkey", { expiresIn: "4h" }, (err, token) => {
-      res
-        .status(201)
-        .json({ token, user_id: user.rec_id, user_name: user.username });
-    });
   } catch (err) {
     console.log(err);
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -148,6 +154,14 @@ router.post("/signup", async (req, res, next) => {
     } else {
       res.status(500).send({ error: err });
     }
+  }
+});
+
+router.post("/logout", async (req, res) => {
+  try {
+    console.log("LOGGED OUT!!!!");
+  } catch (error) {
+    console.log(error);
   }
 });
 
